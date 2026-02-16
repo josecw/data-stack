@@ -1,0 +1,65 @@
+global:
+  clusterName: openmetadata
+  datacenter: aws
+  authorizer:
+    className: "org.openmetadata.service.security.DefaultAuthorizer"
+    containerRequestFilter: "org.openmetadata.service.security.JwtFilter"
+    initialAdmins:
+      - "admin"
+    principalDomain: "open-metadata.org"
+  authentication:
+    provider: "basic"
+    publicKeys:
+      - "http://localhost:8585/api/v1/system/config/jwks"
+    authority: "http://localhost:8585/api/v1/system/config/jwks"
+    enableSelfSignup: false
+
+  serviceAccount:
+    create: true
+    name: open-metadata-sa
+
+  # Database configuration
+  database:
+    host: postgresql
+    port: 5432
+    driverClass: org.postgresql.Driver
+    dbScheme: postgresql
+    databaseName: openmetadata
+    auth:
+      username: openmetadata_user
+      password:
+        secretRef: postgresql-secrets
+        secretKey: password
+
+  # ElasticSearch configuration
+  elasticsearch:
+    host: opensearch-cluster-master
+    port: 9200
+    scheme: http
+    auth:
+      enabled: false
+
+openmetadata:
+  config:
+    authorizer:
+      className: "org.openmetadata.service.security.DefaultAuthorizer"
+      containerRequestFilter: "org.openmetadata.service.security.JwtFilter"
+      initialAdmins:
+        - "admin"
+      principalDomain: "open-metadata.org"
+    authentication:
+      provider: "basic"
+      publicKeys:
+        - "http://localhost:8585/api/v1/system/config/jwks"
+      authority: "http://localhost:8585/api/v1/system/config/jwks"
+      enableSelfSignup: false
+
+# Disable embedded services
+elasticsearch:
+  enabled: false
+
+postgresql:
+  enabled: false
+
+mysql:
+  enabled: false

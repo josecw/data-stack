@@ -1,0 +1,34 @@
+# Checkout the docs for enabling more addons
+# https://awslabs.github.io/data-on-eks/docs/datastacks/processing/spark-on-eks/infra
+
+name                        = "Data Platform"
+region                      = "ap-southeast-1"
+enable_ingress_nginx        = true
+deployment_id               = "1234567"
+enable_celeborn             = true
+enable_ipv6                 = false
+enable_nvidia_device_plugin = true # Enable this for Spark RAPIDS on GPUs example
+
+# Core addons (recommended for all stacks)
+enable_aws_load_balancer_controller = true   # ALB/NLB support
+
+# Spark-specific addons
+enable_spark_operator              = true   # Spark Operator (Kubeflow)
+enable_spark_history_server        = true   # Spark UI persistence
+enable_yunikorn                    = true   # Advanced scheduling
+
+# Airflow-specific addons
+enable_airflow      = true
+
+
+# Metadata-specific addons
+enable_datahub      = true
+
+# Enable all components for full stack deployment
+enable_trino                = true
+enable_jupyterhub           = true
+enable_raydata              = true
+enable_flink                = false
+enable_kafka                = false
+enable_amazon_prometheus    = false
+enable_superset             = true
