@@ -326,3 +326,39 @@ variable "enable_open_metadata" {
   type        = bool
   default     = true
 }
+
+#-----------------------------------------------------------------------------------------
+# Keycloak Variables
+#-----------------------------------------------------------------------------------------
+variable "enable_keycloak" {
+  description = "Enable Keycloak as OIDC provider"
+  type        = bool
+  default     = false
+}
+
+variable "keycloak_admin_password" {
+  description = "Keycloak admin password"
+  type        = string
+  sensitive   = true
+}
+
+variable "keycloak_hostname_prefix" {
+  description = "Keycloak hostname prefix (e.g., keycloak)"
+  type        = string
+  default     = "keycloak"
+}
+
+variable "ingress_domain" {
+  description = "Base domain for ingress (e.g., example.com)"
+  type        = string
+  default     = ""
+}
+
+#-----------------------------------------------------------------------------------------
+# S3 Bucket Tiered Storage Variables
+#-----------------------------------------------------------------------------------------
+variable "enable_tiered_s3_buckets" {
+  description = "Enable tiered S3 buckets (storage-v2.tf): Public/Divisions/Projects/Personal"
+  type        = bool
+  default     = true
+}
