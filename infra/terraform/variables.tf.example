@@ -364,16 +364,160 @@ variable "enable_tiered_s3_buckets" {
 }
 
 #-----------------------------------------------------------------------------------------
-# Teams with Keycloak Integration Variables
+# Coder Development Environment Variables
 #-----------------------------------------------------------------------------------------
-variable "enable_teams_keycloak_integration" {
-  description = "Enable Keycloak integration for teams (namespace annotations, RBAC)"
+variable "enable_coder" {
+  description = "Enable Coder development environment"
   type        = bool
   default     = false
 }
 
-variable "enable_teams_v3" {
-  description = "Use teams-v3.tf (with Keycloak integration) instead of teams.tf (legacy)"
+variable "coder_hostname_prefix" {
+  description = "Coder hostname prefix (e.g., coder)"
+  type        = string
+  default     = "coder"
+}
+
+variable "coder_postgres_password" {
+  description = "Coder PostgreSQL password"
+  type        = string
+  sensitive   = true
+}
+
+variable "coder_oidc_client_secret" {
+  description = "Coder OIDC client secret (base64 encoded)"
+  type        = string
+  sensitive   = true
+}
+
+variable "coder_pg_password_secret" {
+  description = "Coder PostgreSQL password secret"
+  type        = string
+  sensitive   = true
+}
+
+variable "coder_agent_token" {
+  description = "Coder agent token for workspace authentication"
+  type        = string
+  sensitive   = true
+}
+
+variable "coder_url" {
+  description = "Coder server URL (for agent configuration)"
+  type        = string
+  default     = "https://coder.example.com"
+}
+
+variable "coder_protocol" {
+  description = "Coder protocol (http or https)"
+  type        = string
+  default     = "https"
+}
+
+variable "coder_insecure" {
+  description = "Disable TLS verification for Coder (development only)"
   type        = bool
   default     = false
+}
+
+variable "coder_cert_issuer" {
+  description = "Cert-manager cluster issuer for Coder ingress"
+  type        = string
+  default     = "letsencrypt-prod"
+}
+
+variable "coder_envbox_image" {
+  description = "Coder envbox image (for dev environment tools)"
+  type        = string
+  default     = "codercom/envbox:latest"
+}
+
+variable "coder_vscode_image" {
+  description = "VSCode Server image"
+  type        = string
+  default     = "codercom/vscode:latest"
+}
+
+variable "coder_rstudio_image" {
+  description = "RStudio image"
+  type        = string
+  default     " "rocker/rstudio:4.4.4"
+}
+
+variable "coder_jupyter_image" {
+  description = "Jupyter Server image"
+  type        = string
+  default     = "rocker/jupyter/scipy-notebook:latest"
+}
+
+variable "coder_kasmvnc_image" {
+  description = "KasmVNC image"
+  type        = string
+  default     = "kasmweb/kasmvnc:latest"
+}
+
+variable "coder_replica_count" {
+  description = "Coder deployment replica count"
+  type        = number
+  default     = 1
+}
+
+variable "coder_min_replicas" {
+  description = "Coder minimum replicas"
+  type        = number
+  default     = 1
+}
+
+variable "coder_max_replicas" {
+  description = "Coder maximum replicas"
+  type        = number
+  default     = 5
+}
+
+variable "coder_target_cpu_utilization" {
+  description = "Coder target CPU utilization percentage"
+  type        = number
+  default     = 70
+}
+
+variable "coder_target_memory_utilization" {
+  description = "Coder target memory utilization percentage"
+  type        = number
+  default     = 80
+}
+
+variable "coder_storage_class" {
+  description = "Storage class for Coder workspace persistence"
+  type        = string
+  default     = "gp3"
+}
+
+variable "coder_storage_size" {
+  description = "Storage size for Coder workspace (Gi)"
+  type        = string
+  default     = "10"
+}
+
+variable "coder_enable_gpu" {
+  description = "Enable GPU support in Coder templates"
+  type        = bool
+  default     = false
+}
+
+variable "coder_gpu_request" {
+  description = "GPU request for Coder templates"
+  type        = string
+  default     = "1"
+}
+
+variable "coder_gpu_limit" {
+  description = "GPU limit for Coder templates"
+  type        = string
+  default     = "1"
+}
+
+variable "coder_keycloak_group" {
+  description = "Keycloak group name for Coder users (e.g., coder-users)"
+  type        = string
+  default     = "coder-users"
 }

@@ -1,0 +1,27 @@
+# Jupyter Server Template for Coder
+# Jupyter Notebook with file browser
+
+workspace:
+  name: "jupyter-workspace"
+  class: "data-science"
+  resource_class: "data-science"
+
+  # Jupyter configuration
+  image: "rocker/jupyter/scipy-notebook:latest"
+  command:
+    - "start-notebook.sh"
+    - "--NotebookApp.base_url=/"
+    - "--NotebookApp.token=''"
+    - "--NotebookApp.allow_origin='*'"
+
+  # File browser configuration
+  file_browser:
+    enabled: true
+    path: "/home/coder/workspace"
+    max_depth: 5
+
+  # S3/Glue access through pod identity
+  pod:
+    metadata:
+      annotations:
+        eks.amazonaws.com/role-arn: "${iam_role_arn}"

@@ -1,0 +1,65 @@
+# KasmVNC Template for Coder
+# Full Linux Desktop with file browser
+
+workspace:
+  name: "kasmvnc-workspace"
+  class: "data-science"
+  resource_class: "data-science"
+
+  # Full desktop with GUI
+  desktop: true
+
+  # KasmVNC configuration
+  image: "kasmweb/kasmvnc:latest"
+  env:
+    - name: VNC_PW
+      value: "${vnc_password}"
+    - name: VNC_RESOLUTION
+      value: "1920x1080"
+    - name: DISPLAY
+      value: ":1"
+
+  # GPU support (optional)
+  gpu:
+    enabled: ${enable_gpu}
+
+  # File browser configuration
+  file_browser:
+    enabled: true
+    path: "/home/coder"
+    default_location: "filebrowser"
+
+  # S3/Glue access through pod identity
+  pod:
+    metadata:
+      annotations:
+        eks.amazonaws.com/role-arn: "${iam_role_arn}"
+
+  # Resource limits
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "2Gi"
+      #gpu: "${enable_gpu == true ? "1" : "0"}"
+    limits:
+      cpu: "2000m"
+      memory: "8Gi"
+      #gpu: "${enable_gpu == true ? "1" : "0"}"
+
+  # Persistence for home directory
+  persistence:
+    enabled: true
+    data:
+      type: "pvc"
+      size: 10Gi
+      class: "${storage_class}"
+      accessMode: "ReadWriteOnce"
+
+  # Network configuration
+  network:
+    mode: "bridge"
+
+  # Security
+  securityContext:
+    capabilities:
+      add: ["IPC_LOCK"]

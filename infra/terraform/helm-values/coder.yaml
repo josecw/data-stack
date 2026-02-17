@@ -1,0 +1,97 @@
+# Coder Helm Values
+# This is a template file for Terraform to use with templatefile()
+
+replicaCount: 1
+
+image:
+  repository: "codercom/coder"
+  tag: "v2.15.3"
+  pullPolicy: IfNotPresent
+
+env:
+  - name: CODER_PG_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: coder-pg-secret
+        key: password
+  - name: CODER_OIDC_CLIENT_SECRET
+    valueFrom:
+      secretKeyRef:
+        name: coder-oidc-secret
+        key: secret
+
+coder:
+  agent:
+    image: "codercom/agent:2.15.3"
+    token: "${coder_agent_token}"
+  service:
+    url: "${coder_url}"
+    protocol: ${coder_protocol}
+    insecure: ${coder_insecure}
+
+postgres:
+  user: "coder"
+  host: "coder-postgresql.${namespace}"
+  port: 5432
+  database: "coder"
+  sslmode: "disable"
+
+envbox:
+  image: "${coder_envbox_image}"
+
+templates:
+  - name: "vscode-server"
+    file: "helm-values/coder-templates/vscode-server.yaml"
+    data: "name: Visual Studio Code"
+    icon: "/icon/vscode.svg"
+  - name: "rstudio"
+    file: "helm-values/coder-templates/rstudio.yaml"
+    data: "name: RStudio for R"
+    icon: "/icon/rstudio.svg"
+  - name: "jupyter-server"
+    file: "helm-values/coder-templates/jupyter-server.yaml"
+    data: "name: Jupyter Notebook"
+    icon: "/icon/jupyter.svg"
+  - name: "kasmvnc"
+    file: "helm-values/coder-templates/kasmvnc.yaml"
+    data: "name: KasmVNC Desktop"
+    icon: "/icon/kasm.svg"
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations: {
+    cert-manager.io/cluster-issuer: "${cert_issuer}",
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  }
+  hosts:
+    - host: "${coder_hostname}"
+
+resources:
+  limits:
+    cpu: "2000m"
+    memory: "4Gi"
+  requests:
+    cpu: "500m"
+    memory: "1Gi"
+
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+persistence:
+  enabled: true
+  storageClass: "${storage_class}"
+
+serviceAccount:
+  create: true
+  annotations:
+    eks.amazonaws.com/role-arn: "${iam_role_arn}"
+
+affinity: {}
+tolerations: []
+
+nodeSelector: {}
