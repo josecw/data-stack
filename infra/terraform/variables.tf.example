@@ -362,3 +362,18 @@ variable "enable_tiered_s3_buckets" {
   type        = bool
   default     = true
 }
+
+#-----------------------------------------------------------------------------------------
+# Teams with Keycloak Integration Variables
+#-----------------------------------------------------------------------------------------
+variable "enable_teams_keycloak_integration" {
+  description = "Enable Keycloak integration for teams (namespace annotations, RBAC)"
+  type        = bool
+  default     = false
+}
+
+variable "enable_teams_v3" {
+  description = "Use teams-v3.tf (with Keycloak integration) instead of teams.tf (legacy)"
+  type        = bool
+  default     = false
+}
