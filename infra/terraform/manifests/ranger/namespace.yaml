@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ranger
+  labels:
+    name: ranger
+    app.kubernetes.io/component: authorization
+  annotations:
+    # Keycloak namespace group for automatic namespace creation
+    keycloak.org/namespace-group: data-users

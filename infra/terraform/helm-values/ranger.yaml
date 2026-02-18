@@ -1,0 +1,201 @@
+# Apache Ranger - Fine-grained authorization framework
+# Provides policy-based access control for data platforms
+
+# Enable/disable Ranger deployment
+enabled: true
+
+# Image configuration
+image:
+  repository: apache/ranger
+  tag: "2.5.0"
+  pullPolicy: IfNotPresent
+
+# Replicas
+replicaCount: 1
+
+# Service configuration
+service:
+  type: ClusterIP
+  ports:
+    admin: 6080         # Ranger Admin UI
+    api: 6081          # Ranger API
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: ranger.${var.hostname}
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: ranger-tls
+      hosts:
+        - ranger.${var.hostname}
+
+# PostgreSQL backend
+postgresql:
+  enabled: true
+  auth:
+    username: ranger
+    database: ranger
+    existingSecret: ranger-postgresql-secret
+  primary:
+    persistence:
+      enabled: true
+      storageClass: gp3-encrypted
+      size: 100Gi
+
+# Admin UI configuration
+admin:
+  enabled: true
+  username: admin
+  # Password from secret
+  passwordSecretName: ranger-admin-secret
+
+# Keycloak OIDC authentication
+authentication:
+  type: oidc
+  oidc:
+    provider: keycloak
+    realm: ${var.keycloak_realm}
+    url: https://keycloak.${var.hostname}/auth
+    clientId: ranger
+    clientSecretName: ranger-oidc-secret
+    userSync:
+      enabled: true
+      syncInterval: 300  # 5 minutes
+      defaultRoles:
+        - ROLE_USER
+
+# Service definitions for authorization
+services:
+  # Iceberg/Polaris service
+  iceberg:
+    enabled: true
+    name: iceberg
+    displayName: "Apache Iceberg / Polaris"
+    type: iceberg
+    className: org.apache.ranger.services.iceberg.RangerServiceIceberg
+    config:
+      ranger.plugin.iceberg.policy.download.auth.users: admin,rangerusersync
+      ranger.plugin.iceberg.policies.cache.dir: /etc/ranger/data/iceberg
+      ranger.plugin.iceberg.rest.url: http://polaris:8181
+
+  # S3 service
+  s3:
+    enabled: true
+    name: s3
+    displayName: "Amazon S3"
+    type: s3
+    className: org.apache.ranger.services.s3.RangerServiceS3
+    config:
+      ranger.plugin.s3.policy.download.auth.users: admin,rangerusersync
+      ranger.plugin.s3.policies.cache.dir: /etc/ranger/data/s3
+
+  # Glue service
+  glue:
+    enabled: true
+    name: glue
+    displayName: "AWS Glue"
+    type: glue
+    className: org.apache.ranger.services.glue.RangerServiceGlue
+    config:
+      ranger.plugin.glue.policy.download.auth.users: admin,rangerusersync
+      ranger.plugin.glue.policies.cache.dir: /etc/ranger/data/glue
+
+# User sync from Keycloak
+userSync:
+  enabled: true
+  image:
+    repository: apache/ranger-usersync
+    tag: "2.5.0"
+  syncSource:
+    type: ldap
+    ldap:
+      url: ldaps://keycloak.${var.hostname}:636
+      authentication:
+        bindDn: cn=admin,cn=users
+        bindPassword: ${random_password.ranger_ldap_bind.result}
+      userSearch:
+        baseDn: cn=users,cn=${var.keycloak_realm}
+        searchScope: sub
+        userNameAttribute: uid
+      groupSearch:
+        baseDn: cn=groups,cn=${var.keycloak_realm}
+        searchScope: sub
+        groupNameAttribute: cn
+  syncInterval: 300  # 5 minutes
+
+# Resource limits
+resources:
+  limits:
+    cpu: 4000m
+    memory: 8Gi
+  requests:
+    cpu: 1000m
+    memory: 4Gi
+
+# Java options
+javaOpts: >
+  -Xms4g
+  -Xmx8g
+  -XX:+UseG1GC
+  -XX:MaxGCPauseMillis=200
+  -XX:ParallelGCThreads=4
+
+# Secrets
+secrets:
+  # PostgreSQL credentials
+  postgresql:
+    create: true
+    secretName: ranger-postgresql-secret
+    username: ranger
+    password: ${random_password.ranger_postgresql.result}
+
+  # Admin credentials
+  admin:
+    secretName: ranger-admin-secret
+    username: admin
+    password: ${random_password.ranger_admin.result}
+
+  # OIDC client secret (from Keycloak)
+  oidc:
+    secretName: ranger-oidc-secret
+    clientId: ranger
+    clientSecret: ${random_password.ranger_oidc.result}
+
+  # LDAP bind password
+  ldap:
+    secretName: ranger-ldap-secret
+    bindPassword: ${random_password.ranger_ldap_bind.result}
+
+# Audit logging
+audit:
+  enabled: true
+  solr:
+    enabled: ${var.solr_enabled}
+  s3:
+    enabled: true
+    bucket: ${var.ranger_audit_bucket}
+    prefix: audits/
+
+# Monitoring
+serviceMonitor:
+  enabled: ${var.monitoring_enabled}
+
+# ArgoCD application
+argocd:
+  enabled: true
+  namespace: argocd
+  project: data-stack
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PruneLast=true

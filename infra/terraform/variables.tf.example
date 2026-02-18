@@ -521,3 +521,48 @@ variable "coder_keycloak_group" {
   type        = string
   default     = "coder-users"
 }
+
+#-----------------------------------------------------------------------------------------
+# Polaris + Ranger Variables (Phase 5)
+#-----------------------------------------------------------------------------------------
+variable "enable_polaris" {
+  description = "Enable Apache Polaris (Iceberg Catalog REST API)"
+  type        = bool
+  default     = false
+}
+
+variable "enable_ranger" {
+  description = "Enable Apache Ranger (fine-grained authorization)"
+  type        = bool
+  default     = false
+}
+
+variable "polaris_catalog_bucket" {
+  description = "S3 bucket for Polaris catalog storage"
+  type        = string
+  default     = ""
+}
+
+variable "ranger_audit_bucket" {
+  description = "S3 bucket for Ranger audit logs"
+  type        = string
+  default     = ""
+}
+
+variable "keycloak_realm" {
+  description = "Keycloak realm name"
+  type        = string
+  default     = "DoEKS"
+}
+
+variable "monitoring_enabled" {
+  description = "Enable monitoring with Prometheus Operator"
+  type        = bool
+  default     = false
+}
+
+variable "solr_enabled" {
+  description = "Enable Apache Solr for Ranger audit logs"
+  type        = bool
+  default     = false
+}

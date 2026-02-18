@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: polaris
+  labels:
+    name: polaris
+    app.kubernetes.io/component: catalog
+  annotations:
+    # Keycloak namespace group for automatic namespace creation
+    keycloak.org/namespace-group: data-users
