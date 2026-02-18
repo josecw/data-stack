@@ -1,0 +1,164 @@
+# Loki - Log aggregation system
+# Horizontally-scalable, highly-available, multi-tenant log aggregation system
+
+# Enable/disable Loki deployment
+enabled: true
+
+# Image configuration
+image:
+  repository: grafana/loki
+  tag: "2.9.2"
+  pullPolicy: IfNotPresent
+
+# Replicas
+replicaCount: 1
+
+# Service configuration
+service:
+  type: ClusterIP
+  ports:
+    http: 3100
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: loki.${var.hostname}
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: loki-tls
+      hosts:
+        - loki.${var.hostname}
+
+# Storage configuration
+storage:
+  type: s3
+  # S3 bucket for log storage
+  bucketNames:
+    chunks: ${var.loki_bucket}
+    ruler: ${var.loki_bucket}
+    admin: ${var.loki_bucket}
+  
+  # AWS S3 configuration
+  s3:
+    s3: https://s3.${var.aws_region}.amazonaws.com
+    region: ${var.aws_region}
+    endpoint: s3.${var.aws_region}.amazonaws.com
+    accessKeyId: ""
+    secretAccessKey: ""
+    # Use EKS Pod Identity - no static credentials
+    insecure: false
+    sseEncryption: true
+
+# AWS S3 storage configuration
+aws:
+  enabled: true
+  region: ${var.aws_region}
+  usePodIdentity: true
+
+# Config storage configuration
+configStorage:
+  type: s3
+  s3:
+    bucketnames: ${var.loki_bucket}
+
+# Memberlist configuration
+memberlist:
+  join_members:
+    - loki-headless
+
+# Authentication configuration
+auth_enabled: false
+
+# Compactor configuration
+compactor:
+  working_directory: /data/loki/boltdb-shipper-compactor
+  shared_store: s3
+
+# Distributor configuration
+distributor:
+  ring:
+    kvstore:
+      store: memberlist
+
+# Ingester configuration
+ingester:
+  lifecycler:
+    ring:
+      kvstore:
+        store: memberlist
+    max_chunk_age: 168h
+
+# Ruler configuration
+ruler:
+  ring:
+    kvstore:
+      store: memberlist
+  storage:
+    type: s3
+    s3:
+      bucketnames: ${var.loki_bucket}
+
+# Schema configuration
+schemaConfig:
+  configs:
+    - from: "2024-04-01"
+      store: boltdb-shipper
+      object_store: s3
+      schema: v12
+      index:
+        prefix: loki_index_
+        period: 24h
+      chunks:
+        prefix: loki_chunk_
+        period: 24h
+      row_shards: 16
+
+# Resource limits
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+  requests:
+    cpu: 500m
+    memory: 2Gi
+
+# Node selector
+nodeSelector:
+  node.kubernetes.io/instance-type: t3a.xlarge
+
+# Tolerations
+tolerations:
+  - key: "CriticalAddonsOnly"
+    operator: "Exists"
+
+# Readiness probe
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 1
+  failureThreshold: 3
+
+# Liveness probe
+livenessProbe:
+  httpGet:
+    path: /ready
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 1
+  failureThreshold: 3
+
+# Persistence
+persistence:
+  enabled: true
+  storageClass: gp3-encrypted
+  size: 50Gi

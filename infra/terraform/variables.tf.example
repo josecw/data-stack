@@ -599,3 +599,30 @@ variable "openmetadata_secrets_manager" {
   type        = string
   default     = "org.openmetadata.service.secrets.NoopSecretsManager"
 }
+
+#-----------------------------------------------------------------------------------------
+# LGTM Stack Variables (Phase 8)
+#-----------------------------------------------------------------------------------------
+variable "enable_lgtm" {
+  description = "Enable LGTM Stack (Loki, Grafana, Tempo)"
+  type        = bool
+  default     = false
+}
+
+variable "loki_bucket" {
+  description = "S3 bucket for Loki log storage (leave empty to auto-create)"
+  type        = string
+  default     = ""
+}
+
+variable "tempo_bucket" {
+  description = "S3 bucket for Tempo trace storage (leave empty to auto-create)"
+  type        = string
+  default     = ""
+}
+
+variable "lgtm_create_buckets" {
+  description = "Create S3 buckets for LGTM Stack (loki, tempo)"
+  type        = bool
+  default     = true
+}
