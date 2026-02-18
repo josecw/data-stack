@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openmetadata
+  labels:
+    name: openmetadata
+    app.kubernetes.io/component: metadata
+  annotations:
+    # Keycloak namespace group for automatic namespace creation
+    keycloak.org/namespace-group: data-users

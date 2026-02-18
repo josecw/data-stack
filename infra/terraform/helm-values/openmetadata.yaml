@@ -1,0 +1,385 @@
+# Open Metadata - Enterprise Metadata Platform
+# Provides data catalog, lineage, and governance
+
+# Enable/disable Open Metadata deployment
+enabled: true
+
+# Global configuration
+global:
+  # OpenMetadata image
+  image:
+    repository: openmetadata/openmetadata
+    tag: "1.3.0"
+    pullPolicy: IfNotPresent
+
+  # External secrets reference
+  secrets:
+    create: false
+    # Use pre-created secrets from Terraform
+    externalSecrets:
+      airbyteSecretName: openmetadata-airbyte-secret
+      airflowSecretName: openmetadata-airflow-secret
+      databaseSecretName: openmetadata-postgresql-secret
+      elasticsearchSecretName: openmetadata-elasticsearch-secret
+      jupyterSecretName: openmetadata-jupyter-secret
+
+# OpenMetadata Server configuration
+openmetadata:
+  enabled: true
+
+  # Service configuration
+  service:
+    type: ClusterIP
+    ports:
+      http: 8585
+      https: 8586
+
+  # Ingress configuration
+  ingress:
+    enabled: true
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    hosts:
+      - host: openmetadata.${var.hostname}
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: openmetadata-tls
+        hosts:
+          - openmetadata.${var.hostname}
+
+  # Resource limits
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+    requests:
+      cpu: 500m
+      memory: 2Gi
+
+  # Java options
+  javaOpts: >
+    -Xms2g
+    -Xmx4g
+    -XX:+UseG1GC
+    -XX:MaxGCPauseMillis=200
+    -XX:ParallelGCThreads=4
+
+  # Configuration
+  conf:
+    # Server configuration
+    server:
+      port: 8585
+
+    # Authentication configuration
+    authentication:
+      # Use Keycloak OIDC
+      provider: keycloak
+      clientId: openmetadata
+      authority: https://keycloak.${var.hostname}/auth/realms/${var.keycloak_realm}
+      jwks:
+        uri: https://keycloak.${var.hostname}/auth/realms/${var.keycloak_realm}/protocol/openid-connect/certs
+
+    # Database configuration
+    database:
+      # Use PostgreSQL backend
+      host: openmetadata-postgresql.openmetadata.svc.cluster.local
+      port: 5432
+      database: openmetadata_db
+      schema: public
+      driver: postgresql
+
+    # Elasticsearch configuration
+    elasticsearch:
+      host: openmetadata-elasticsearch.openmetadata.svc.cluster.local
+      port: 9200
+      scheme: http
+      username: elastic
+      passwordFromSecret: openmetadata-elasticsearch-secret
+      passwordSecretKey: password
+
+    # Airflow configuration
+    airflow:
+      enabled: true
+      apiEndpoint: http://openmetadata-airflow:8080
+
+    # Pipeline service client
+    pipelineServiceClient:
+      className: org.openmetadata.service.clients.PipelineServiceClient
+      host: openmetadata
+      port: 8585
+
+    # Secrets manager
+    secretsManager:
+      className: ${var.openmetadata_secrets_manager}
+
+    # Elastic search configuration
+    elasticSearch:
+      host: openmetadata-elasticsearch.openmetadata.svc.cluster.local
+      port: 9200
+      username: elastic
+      passwordFromSecret: openmetadata-elasticsearch-secret
+      passwordSecretKey: password
+
+    # Search configuration
+    searchIndex:
+      host: openmetadata-elasticsearch.openmetadata.svc.cluster.local
+      port: 9200
+      scheme: http
+      username: elastic
+      passwordFromSecret: openmetadata-elasticsearch-secret
+      passwordSecretKey: password
+
+    # Pipeline ingestion service
+    pipelineServiceClient:
+      className: org.openmetadata.service.clients.PipelineServiceClient
+      host: openmetadata
+      port: 8585
+
+    # SMTP configuration (optional)
+    # email:
+    #   enabled: true
+    #   host: smtp.example.com
+    #   port: 587
+    #   useSSL: true
+    #   startTLS: true
+    #   smtpUser: user@example.com
+    #   smtpPassword: password
+
+    # Log configuration
+    log:
+      level: INFO
+
+    # Security configuration
+    jwtToken:
+      enabled: true
+      rsaPublicKeyFilePath: /tmp/jwt-rsa-public.pem
+      issuer: open-metadata.org
+      audience: open-metadata
+
+    # Authorizer configuration
+    authorizer:
+      className: org.openmetadata.authorizer.RbacAuthorizer
+      enabled: true
+
+    # Bot configuration
+    bot:
+      enabled: true
+      name: OpenMetadata Bot
+      description: OpenMetadata Bot
+      token: ${random_password.openmetadata_bot_token.result}
+
+# PostgreSQL database
+postgresql:
+  enabled: true
+  auth:
+    username: openmetadata
+    database: openmetadata_db
+    existingSecret: openmetadata-postgresql-secret
+  primary:
+    persistence:
+      enabled: true
+      storageClass: gp3-encrypted
+      size: 100Gi
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 250m
+      memory: 1Gi
+
+# Elasticsearch for search indexing
+elasticsearch:
+  enabled: true
+  auth:
+    username: elastic
+    existingSecret: openmetadata-elasticsearch-secret
+  persistence:
+    enabled: true
+    storageClass: gp3-encrypted
+    size: 200Gi
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+    requests:
+      cpu: 500m
+      memory: 2Gi
+  # Single node for development
+  replicas: 1
+
+# Airflow for pipeline ingestion
+airflow:
+  enabled: true
+
+  # Service configuration
+  service:
+    type: ClusterIP
+    ports:
+      http: 8080
+
+  # PostgreSQL backend (shared with OpenMetadata)
+  postgresql:
+    enabled: false
+
+  # Use external PostgreSQL
+  externalDatabase:
+    host: openmetadata-postgresql.openmetadata.svc.cluster.local
+    port: 5432
+    database: openmetadata_airflow
+    user: openmetadata
+    secret: openmetadata-postgresql-secret
+    secretKey: password
+
+  # Airflow executor
+  executor: KubernetesExecutor
+
+  # DAGs storage
+  dags:
+    persistence:
+      enabled: true
+      storageClass: gp3-encrypted
+      size: 10Gi
+
+  # Logs storage
+  logs:
+    persistence:
+      enabled: true
+      storageClass: gp3-encrypted
+      size: 20Gi
+
+  # Resource limits
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+    requests:
+      cpu: 500m
+      memory: 2Gi
+
+  # Pod Identity for S3 access
+  podIdentity:
+    enabled: true
+    roleName: openmetadata-airflow-pod-identity
+    namespace: openmetadata
+    serviceAccount: openmetadata-airflow
+
+  # Environment variables
+  env:
+    - name: AWS_REGION
+      value: ${var.aws_region}
+    - name: AIRFLOW__CORE__UNIT_TEST_MODE
+      value: "false"
+
+  # Configuration
+  config:
+    core:
+      # Security
+      security:
+        airflow:
+          enable_secure_proxy: true
+
+      # Fernet key (from secret)
+      fernet_key: ${random_password.airflow_fernet_key.result}
+
+      # Secret key (from secret)
+      secret_key: ${random_password.airflow_secret_key.result}
+
+      # Worker
+      workers:
+        metadata_update_batch_size: 1000
+
+    logging:
+      # Remote logging
+      remote_logging: true
+      remote_base_log_folder: s3://${var.openmetadata_airflow_bucket}/logs
+
+# EKS Pod Identity (IAM)
+# OpenMetadata Airflow - S3 access for DAGs/logs
+podIdentity:
+  enabled: true
+
+  # IAM role
+  roleName: openmetadata-airflow-pod-identity
+  namespace: openmetadata
+  serviceAccount: openmetadata-airflow
+
+  # IAM policy (S3 access)
+  policyARNs:
+    - arn:aws:iam::aws:policy/AWSLambda_FullAccess
+    - arn:aws:iam::aws:policy/AmazonS3FullAccess
+
+# Secrets (managed externally by Terraform)
+secrets:
+  # PostgreSQL credentials
+  postgresql:
+    create: false
+    secretName: openmetadata-postgresql-secret
+    username: openmetadata
+    password: ${random_password.openmetadata_postgresql.result}
+
+  # Elasticsearch credentials
+  elasticsearch:
+    create: false
+    secretName: openmetadata-elasticsearch-secret
+    username: elastic
+    password: ${random_password.openmetadata_elasticsearch.result}
+
+  # Airflow Fernet key
+  airflow:
+    create: false
+    secretName: openmetadata-airflow-secret
+    fernetKey: ${random_password.airflow_fernet_key.result}
+    secretKey: ${random_password.airflow_secret_key.result}
+
+  # Bot token
+  bot:
+    create: false
+    secretName: openmetadata-bot-secret
+    token: ${random_password.openmetadata_bot_token.result}
+
+# Environment variables
+extraEnv:
+  - name: AWS_REGION
+    value: ${var.aws_region}
+  - name: AIRFLOW_AWS_SECRET_ACCESS_KEY
+    valueFrom:
+      secretKeyRef:
+        name: openmetadata-airflow-secret
+        key: aws-secret-access-key
+  - name: AIRFLOW_AWS_ACCESS_KEY_ID
+    valueFrom:
+      secretKeyRef:
+        name: openmetadata-airflow-secret
+        key: aws-access-key-id
+
+# Monitoring
+serviceMonitor:
+  enabled: ${var.monitoring_enabled}
+
+# ArgoCD application
+argocd:
+  enabled: true
+  namespace: argocd
+  project: data-stack
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PruneLast=true
+
+# Backup configuration
+backup:
+  enabled: true
+  schedule: "0 2 * * *"
+  retention: 7  # days
+  storage:
+    type: s3
+    bucket: ${var.openmetadata_backup_bucket}
+    path: backups/

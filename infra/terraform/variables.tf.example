@@ -566,3 +566,36 @@ variable "solr_enabled" {
   type        = bool
   default     = false
 }
+
+#-----------------------------------------------------------------------------------------
+# Open Metadata Variables (Phase 6)
+#-----------------------------------------------------------------------------------------
+variable "enable_open_metadata" {
+  description = "Enable Open Metadata (enterprise metadata platform)"
+  type        = bool
+  default     = false
+}
+
+variable "openmetadata_airflow_bucket" {
+  description = "S3 bucket for OpenMetadata Airflow DAGs and logs"
+  type        = string
+  default     = ""
+}
+
+variable "openmetadata_backup_bucket" {
+  description = "S3 bucket for OpenMetadata backups"
+  type        = string
+  default     = ""
+}
+
+variable "openmetadata_create_buckets" {
+  description = "Create S3 buckets for OpenMetadata (airflow, backup)"
+  type        = bool
+  default     = true
+}
+
+variable "openmetadata_secrets_manager" {
+  description = "Secrets manager class name for OpenMetadata"
+  type        = string
+  default     = "org.openmetadata.service.secrets.NoopSecretsManager"
+}
