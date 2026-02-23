@@ -1,0 +1,203 @@
+global:
+  # Global Docker image registry
+  imageRegistry: ""
+
+# Backstage common configuration
+backstage:
+  image:
+    registry: ghcr.io
+    repository: backstage/backstage
+    tag: 1.26.0
+    pullPolicy: IfNotPresent
+
+  # Backstage application configuration
+  appConfig:
+    baseUrl: https://backstage.${domain_name}
+    organization: backstage
+    # Backend configuration
+    backend:
+      baseUrl: http://backstage:7007
+      listen:
+        port: 7007
+      csp:
+        connect-src: ["'self'", "http:", "https:"]
+      cors:
+        origin: https://backstage.${domain_name}
+        methods: [GET, POST, PUT, DELETE]
+        allowedHeaders: ["Authorization", "Content-Type"]
+        credentials: true
+    # TechDocs configuration
+    techdocs:
+      builder: "local"
+      publisher:
+        type: "awsS3"
+        awsS3:
+          bucketName: "${var.techdocs_bucket_name}"
+          credentials:
+            accessKeyId: "${var.techdocs_access_key_id}"
+            secretAccessKey: "${var.techdocs_secret_access_key}"
+    # Catalog configuration
+    catalog:
+      rules:
+        - allow: [Component, System, Group, Resource, API, User, Location, Template]
+      locations:
+        - type: file
+          target: ./catalog-info.yaml
+          rules:
+            - allow: [Component, System, API, Resource, Template]
+    # Integrations
+    integrations:
+      github:
+        - host: github.com
+          token: ${github_token}
+    # Lighthouse
+    lighthouse:
+      baseUrl: https://lighthouse.${domain_name}
+
+  # Environment variables
+  extraEnvVars:
+    - name: NODE_ENV
+      value: production
+    - name: APP_CONFIG_backend_database_host
+      value: "${db_host}"
+    - name: APP_CONFIG_backend_database_port
+      value: "${db_port}"
+    - name: APP_CONFIG_backend_database_user
+      value: "${db_user}"
+    - name: APP_CONFIG_backend_database_password
+      valueFrom:
+        secretKeyRef:
+          name: backstage-db-credentials
+          key: password
+    - name: POSTGRES_HOST
+      value: "${db_host}"
+    - name: POSTGRES_PORT
+      value: "${db_port}"
+    - name: POSTGRES_USER
+      value: "${db_user}"
+    - name: POSTGRES_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: backstage-db-credentials
+          key: password
+    - name: POSTGRES_DB
+      value: "${db_name}"
+    - name: AUTH_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: backstage-auth
+          key: secret
+    - name: GITHUB_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: backstage-github-token
+          key: token
+          optional: true
+
+  # Service account
+  serviceAccount:
+    create: true
+    annotations: {}
+    name: ""
+
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 7007
+    annotations: {}
+
+  # Ingress configuration
+  ingress:
+    enabled: true
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    hosts:
+      - host: backstage.${domain_name}
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: backstage-tls
+        hosts:
+          - backstage.${domain_name}
+
+  # Resources
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+
+  # Pod configuration
+  podAnnotations: {}
+
+  # Replicas
+  replicaCount: 2
+
+  # Liveness and readiness probes
+  livenessProbe:
+    httpGet:
+      path: /healthcheck
+      port: 7007
+    initialDelaySeconds: 60
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /healthcheck
+      port: 7007
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  # Node selector
+  nodeSelector: {}
+
+  # Tolerations
+  tolerations: []
+
+  # Affinity
+  affinity: {}
+
+# PostgreSQL configuration
+postgresql:
+  enabled: true
+  image:
+    repository: bitnami/postgresql
+    tag: 15.3.0
+    pullPolicy: IfNotPresent
+  auth:
+    username: "${db_user}"
+    password: "${db_password}"
+    database: "${db_name}"
+  primary:
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 250m
+        memory: 256Mi
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClass: gp3
+  readReplicas:
+    replicaCount: 1
+    resources:
+      limits:
+        cpu: 250m
+        memory: 256Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+
+# Common labels
+commonLabels: {}

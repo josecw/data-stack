@@ -1,0 +1,99 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: sample-service
+  description: A sample service for demonstration purposes
+  tags:
+    - example
+    - microservice
+    - data
+  annotations:
+    github.com/project-slug: your-org/sample-service
+    backstage.io/techdocs-ref: dir:.
+spec:
+  type: service
+  lifecycle: production
+  owner: team-a
+  system: data-platform
+  dependsOn:
+    - resource:sample-database
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: sample-api
+  description: REST API for data access
+  tags:
+    - api
+    - rest
+spec:
+  type: api
+  lifecycle: production
+  owner: team-a
+  system: data-platform
+  providesApis:
+    - sample-data-api
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: sample-data-api
+  description: API for accessing sample data
+spec:
+  type: openapi
+  lifecycle: production
+  owner: team-a
+  definition:
+    $text: ./openapi.yaml
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: sample-database
+  description: PostgreSQL database for sample service
+  tags:
+    - database
+    - postgresql
+spec:
+  type: database
+  lifecycle: production
+  owner: team-a
+  system: data-platform
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: data-platform
+  description: Core data platform for analytics
+  tags:
+    - data
+    - platform
+spec:
+  owner: platform-team
+  domain: data-engineering
+---
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: team-a
+  description: Data Engineering Team A
+spec:
+  type: team
+  profile:
+    displayName: Team A
+    email: team-a@example.com
+  members:
+    - alice
+    - bob
+  children: []
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: alice
+spec:
+  profile:
+    displayName: Alice Developer
+    email: alice@example.com
+  memberOf:
+    - team-a

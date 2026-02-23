@@ -626,3 +626,51 @@ variable "lgtm_create_buckets" {
   type        = bool
   default     = true
 }
+
+#-----------------------------------------------------------------------------------------
+# Backstage Variables
+#-----------------------------------------------------------------------------------------
+variable "enable_backstage" {
+  description = "Enable Spotify Backstage (developer portal platform)"
+  type        = bool
+  default     = false
+}
+
+variable "backstage_admin_password" {
+  description = "Backstage admin password"
+  type        = string
+  sensitive   = true
+}
+
+variable "github_token" {
+  description = "GitHub personal access token for Backstage integrations"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "techdocs_bucket_name" {
+  description = "S3 bucket name for TechDocs storage (leave empty to auto-create)"
+  type        = string
+  default     = ""
+}
+
+variable "techdocs_access_key_id" {
+  description = "AWS access key ID for TechDocs S3 access"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "techdocs_secret_access_key" {
+  description = "AWS secret access key for TechDocs S3 access"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "backstage_create_bucket" {
+  description = "Create S3 bucket for TechDocs"
+  type        = bool
+  default     = true
+}
