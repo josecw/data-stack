@@ -1,0 +1,195 @@
+# Tempo - Distributed tracing system
+# High-distributed tracing platform compatible with OpenTelemetry
+
+# Enable/disable Tempo deployment
+enabled: true
+
+# Image configuration
+image:
+  repository: grafana/tempo
+  tag: "2.3.2"
+  pullPolicy: IfNotPresent
+
+# Replicas
+replicaCount: 1
+
+# Service configuration
+service:
+  type: ClusterIP
+  ports:
+    http: 3100
+    grpc: 9095
+    otlp: 4317
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: tempo.${var.hostname}
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: tempo-tls
+      hosts:
+        - tempo.${var.hostname}}
+
+# Storage configuration
+storage:
+  type: s3
+  # S3 bucket for trace storage
+  bucket: ${var.tempo_bucket}
+  
+  # AWS S3 configuration
+  s3:
+    s3: https://s3.${var.aws_region}.amazonaws.com
+    region: ${var.aws_region}
+    endpoint: s3.${var.aws_region}.amazonaws.com
+    accessKeyId: ""
+    secretAccessKey: ""
+    # Use EKS Pod Identity - no static credentials
+    insecure: false
+
+# AWS S3 storage configuration
+aws:
+  enabled: true
+  region: ${var.aws_region}
+  usePodIdentity: true
+
+# Distributed tracing configuration
+traces:
+  otlp:
+    grpc:
+      enabled: true
+      receiver: protocols::otlp
+    http:
+      enabled: true
+      receiver: protocols::otlp
+
+# Tempo configuration
+tempo:
+  # Backend configuration
+  backend: s3
+  
+  # Ingester configuration
+  ingester:
+    lifecycler:
+      ring:
+        kvstore:
+          store: memberlist
+      max_block_duration: 5m
+      max_idle_duration: 24h
+      min_block_duration: 10s
+  
+  # Distributor configuration
+  distributor:
+    ring:
+      kvstore:
+        store: memberlist
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: "0.0.0.0:4317"
+          http:
+            endpoint: "0.0.0.0:4318"
+  
+  # Compactor configuration
+  compactor:
+    ring:
+      kvstore:
+        store: memberlist
+    compaction:
+      compacted_block_size: 10485760  # 10MB
+      max_block_size: 20971520       # 20MB
+      block_retention: 336h             # 14 days
+  
+  # Querier configuration
+  querier:
+    frontend:
+      worker:
+        frontend_address: tempo-querier-frontend:9095
+    trace_by_id:
+      max_duration: 10s
+  
+  # Metrics generator configuration
+  metricsGenerator:
+    ring:
+      kvstore:
+        store: memberlist
+    processor:
+      mode: local
+    store:
+      metrics:
+        url: ${var.tempo_bucket}
+        local:
+          path: /tmp/tempo
+      remote_write:
+        url: http://tempo-gateway-tempo:3100/write
+    overrides:
+      per_user_override_configs:
+        per-user-default:
+          latency_metric_buckets: 200
+          downstream_latency_metric_buckets: 50
+          service_graph_metric_buckets: 50
+          build_info_metric_buckets: 50
+
+# Resource limits
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+  requests:
+    cpu: 500m
+    memory: 2Gi
+
+# Node selector
+nodeSelector:
+  node.kubernetes.io/instance-type: t3a.xlarge
+
+# Tolerations
+tolerations:
+  - key: "CriticalAddonsOnly"
+    operator: "Exists"
+
+# Readiness probe
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 1
+  failureThreshold: 3
+
+# Liveness probe
+livenessProbe:
+  httpGet:
+    path: /ready
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 1
+  failureThreshold: 3
+
+# Persistence
+persistence:
+  enabled: true
+  storageClass: gp3-encrypted
+  size: 50Gi
+
+# Security
+securityContext:
+  fsGroup: 65532
+  runAsUser: 65532
+  runAsGroup: 65532
+
+# Service account configuration
+serviceAccount:
+  create: true
+  name: tempo
+  annotations:
+    eks.amazonaws.com/role-arn: ${module.tempo_pod_identity.iam_role_arn}

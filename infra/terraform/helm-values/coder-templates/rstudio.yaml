@@ -1,0 +1,27 @@
+# RStudio Template for Coder
+# Data Science IDE with file browser
+
+workspace:
+  name: "rstudio-workspace"
+  class: "data-science"
+  resource_class: "data-science"
+
+  # File Browser integration
+  file_browser:
+    enabled: true
+    path: "/home/coder/workspace"
+    show_hidden_files: false
+
+  # RStudio configuration
+  image: "rocker/rstudio:4.4.4"
+    environment:
+      - name: USER
+        value: "coder"
+      - name: HOME
+        value: "/home/coder"
+
+  # S3/Glue access through pod identity
+  pod:
+    metadata:
+      annotations:
+        eks.amazonaws.com/role-arn: "${iam_role_arn}"

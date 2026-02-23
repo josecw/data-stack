@@ -1,0 +1,112 @@
+# Keycloak Helm Values
+# This is a template file for Terraform to use with templatefile()
+
+image:
+  repository: quay.io/keycloak/keycloak
+  tag: "25.0.6"
+  pullPolicy: IfNotPresent
+
+auth:
+  adminUser: admin
+  existingSecret: keycloak-admin-secret
+  adminPassword: ""
+
+database:
+  vendor: postgres
+  host: keycloak-postgresql.${namespace}.svc.cluster.local
+  port: 5432
+  name: keycloak
+  user: keycloak
+  passwordSecret: keycloak-postgresql-secret
+  passwordSecretKey: password
+
+extraEnvVars: |
+  - name: KC_PROXY
+    value: "edge"
+  - name: KC_HOSTNAME
+    value: "${hostname}"
+  - name: KC_HOSTNAME_STRICT
+    value: "false"
+  - name: KC_HOSTNAME_STRICT_HTTPS
+    value: "false"
+  - name: KC_HTTP_ENABLED
+    value: "true"
+  - name: KC_HEALTH_ENABLED
+    value: "true"
+  - name: KC_METRICS_ENABLED
+    value: "true"
+
+proxy: edge
+
+service:
+  type: ClusterIP
+  annotations: {}
+  labels: {}
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "16k"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+  hostname: ${hostname}
+  tls: true
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 120
+  periodSeconds: 30
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+startupProbe:
+  enabled: true
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30
+
+affinity: {}
+tolerations: []
+
+nodeSelector: {}
+
+autoscaling:
+  enabled: false
+
+postgresql:
+  enabled: false
+
+serviceAccount:
+  create: true
+  annotations:
+    eks.amazonaws.com/role-arn: ${iam_role_arn}
+  name: keycloak
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Monitoring
+serviceMonitor:
+  enabled: true
+  namespaceSelector:
+    matchLabels:
+      name: ${namespace}

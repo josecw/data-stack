@@ -1,0 +1,156 @@
+# Polaris - Apache Iceberg Catalog
+# Implements Iceberg REST API for multi-engine interoperability
+
+# Enable/disable Polaris deployment
+enabled: true
+
+# Image configuration
+image:
+  repository: apache/polaris
+  tag: "1.1.0"
+  pullPolicy: IfNotPresent
+
+# Replicas
+replicaCount: 1
+
+# Service configuration
+service:
+  type: ClusterIP
+  ports:
+    api: 8181          # Polaris REST API
+    mgmt: 8182         # Management API
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: polaris.${var.hostname}
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: polaris-tls
+      hosts:
+        - polaris.${var.hostname}
+
+# PostgreSQL backend
+postgresql:
+  enabled: true
+  auth:
+    username: polaris
+    database: polaris
+    existingSecret: polaris-postgresql-secret
+  primary:
+    persistence:
+      enabled: true
+      storageClass: gp3-encrypted
+      size: 50Gi
+
+# AWS S3 backend configuration
+aws:
+  enabled: true
+  region: ${var.aws_region}
+  # Use EKS Pod Identity for AWS access
+  usePodIdentity: true
+  # S3 bucket for catalog storage
+  catalogBucket: ${var.polaris_catalog_bucket}
+
+# Catalog storage configuration
+catalog:
+  storageType: s3
+  defaultBaseLocation: s3://${var.polaris_catalog_bucket}/catalog
+
+# Authentication configuration
+authentication:
+  # Use Keycloak OIDC for authentication
+  type: oidc
+  authenticator:
+    type: keycloak
+    keycloak:
+      realm: ${var.keycloak_realm}
+      url: https://keycloak.${var.hostname}/auth
+      clientId: polaris
+      clientSecretName: polaris-oidc-secret
+
+# Features
+features:
+  SUPPORTED_CATALOG_STORAGE_TYPES:
+    - "S3"
+  ENABLE_MULTI_CATALOG: true
+
+# Resource limits
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+  requests:
+    cpu: 500m
+    memory: 2Gi
+
+# Java options
+javaOpts: >
+  -Xms2g
+  -Xmx4g
+  -XX:+UseG1GC
+  -XX:MaxGCPauseMillis=200
+  -XX:ParallelGCThreads=4
+  -Dquarkus.http.host=0.0.0.0
+  -Dquarkus.http.port=8181
+  -Dquarkus.management.port=8182
+
+# Environment variables for AWS access (when not using Pod Identity)
+env:
+  - name: AWS_REGION
+    value: ${var.aws_region}
+
+# Secrets
+secrets:
+  # PostgreSQL credentials
+  postgresql:
+    create: true
+    secretName: polaris-postgresql-secret
+    username: polaris
+    password: ${random_password.polaris_postgresql.result}
+
+  # OIDC client secret (from Keycloak)
+  oidc:
+    secretName: polaris-oidc-secret
+    clientId: polaris
+    clientSecret: ${random_password.polaris_oidc.result}
+
+  # Root user credentials (for bootstrap)
+  root:
+    secretName: polaris-root-secret
+    rootClientId: root
+    rootClientSecret: ${random_password.polaris_root.result}
+
+# Bootstrap configuration
+bootstrap:
+  enabled: true
+  image:
+    repository: apache/polaris-admin-tool
+    tag: "1.1.0"
+  rootCredentials:
+    clientId: root
+    clientSecret: ${random_password.polaris_root.result}
+    realm: POLARIS
+
+# Monitoring
+serviceMonitor:
+  enabled: ${var.monitoring_enabled}
+
+# ArgoCD application
+argocd:
+  enabled: true
+  namespace: argocd
+  project: data-stack
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PruneLast=true

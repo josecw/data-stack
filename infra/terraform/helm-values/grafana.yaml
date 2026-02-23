@@ -1,0 +1,196 @@
+# Grafana - Visualization and monitoring platform
+# Metrics dashboard and visualization for time series data
+
+# Enable/disable Grafana deployment
+enabled: true
+
+# Image configuration
+image:
+  repository: grafana/grafana
+  tag: "10.3.1"
+  pullPolicy: IfNotPresent
+
+# Replicas
+replicaCount: 1
+
+# Service configuration
+service:
+  type: ClusterIP
+  ports:
+    http: 3000
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: grafana.${var.hostname}
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: grafana-tls
+      hosts:
+        - grafana.${var.hostname}
+
+# Admin user configuration
+adminUser: admin
+adminPassword: ""  # Set from secret
+existingSecret: grafana-admin-secret
+
+# Authentication configuration
+auth:
+  anonymous:
+    enabled: false
+  basic:
+    enabled: false
+  # Use Keycloak OIDC for authentication
+  generic_oauth:
+    enabled: true
+    name: Keycloak
+    client_id: grafana
+    client_secret: ""  # Set from secret
+    scopes: openid profile email
+    auth_url: https://keycloak.${var.hostname}/auth/realms/${var.keycloak_realm}/protocol/openid-connect/auth
+    token_url: https://keycloak.${var.hostname}/auth/realms/${var.keycloak_realm}/protocol/openid-connect/token
+    api_url: https://keycloak.${var.hostname}/auth/realms/${var.keycloak_realm}/protocol/openid-connect/userinfo
+    allow_sign_up: false
+    auto_login: false
+    role_attribute_path: contains(roles[*], 'grafana_admin') && 'Admin' || contains(roles[*], 'grafana_editor') && 'Editor' || 'Viewer'
+
+# Data sources configuration
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Loki
+        type: loki
+        access: proxy
+        url: http://loki.loki.svc.cluster.local:3100
+        jsonData:
+          maxLines: 1000
+      - name: Tempo
+        type: tempo
+        access: proxy
+        url: http://tempo.tempo.svc.cluster.local:3100
+        jsonData:
+          tracesToLogs:
+            datasourceUid: loki
+            mapTagNamesEnabled: true
+
+# Dashboard providers
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+      - name: 'Loki'
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: false
+        updateIntervalSeconds: 10
+        allowUiUpdates: true
+        options:
+          path: /var/lib/grafana/dashboards/loki
+      - name: 'Tempo'
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: false
+        updateIntervalSeconds: 10
+        allowUiUpdates: true
+        options:
+          path: /var/lib/grafana/dashboards/tempo
+
+# Dashboards configuration
+dashboards:
+  default:
+    loki-dashboards:
+      gnetId: 13639
+      revision: 1
+      datasource: Loki
+    tempo-dashboards:
+      gnetId: 17314
+      revision: 1
+      datasource: Tempo
+
+# Persistence
+persistence:
+  enabled: true
+  storageClass: gp3-encrypted
+  size: 20Gi
+  type: pvc
+
+# Resource limits
+resources:
+  limits:
+    cpu: 1000m
+    memory: 2Gi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+# Node selector
+nodeSelector:
+  node.kubernetes.io/instance-type: t3a.large
+
+# Tolerations
+tolerations:
+  - key: "CriticalAddonsOnly"
+    operator: "Exists"
+
+# Readiness probe
+readinessProbe:
+  httpGet:
+    path: /api/health
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 1
+  failureThreshold: 3
+
+# Liveness probe
+livenessProbe:
+  httpGet:
+    path: /api/health
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 1
+  failureThreshold: 3
+
+# Sidecar configuration for dashboards
+sidecar:
+  dashboards:
+    enabled: true
+    SCProvider: true
+  datasources:
+    enabled: false
+
+# Plugins
+plugins:
+  - grafana-loki-datasource
+  - grafana-tempo-datasource
+
+# SMTP configuration (optional - for email notifications)
+smtp:
+  enabled: false
+  host: smtp.gmail.com
+  port: 465
+  user: ""
+  password: ""
+  fromAddress: "grafana@${var.hostname}"
+  fromName: "Grafana"
+  skipVerify: false
+
+# Server configuration
+server:
+  rootUrl: "https://grafana.${var.hostname}"
+
+# Security
+securityContext:
+  fsGroup: 472
+  runAsUser: 472
+  runAsGroup: 472

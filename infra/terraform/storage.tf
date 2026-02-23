@@ -21,12 +21,17 @@ locals {
 */
 
 
+#-----------------------------------------------------------------------------------------
+# S3 Buckets (Legacy - Preserved for backward compatibility)
+# Note: Use storage-v2.tf for new tiered bucket structure (Public/Divisions/Projects/Personal)
+#-----------------------------------------------------------------------------------------
+
 #---------------------------------------------------------------
 # S3 bucket for Spark Event Logs and Example Data
 #---------------------------------------------------------------
 #tfsec:ignore:*
 module "s3_bucket" {
-  source  = "terraform-aws-modules/s3-bucket/aws"
+  source = "terraform-aws-modules/s3-bucket/aws"
   version = "~> 5.0"
 
   bucket_prefix = "${local.name}-spark-logs-"
@@ -58,7 +63,7 @@ resource "aws_s3_object" "this" {
 #---------------------------------------------------------------
 #tfsec:ignore:*
 module "data_bucket" {
-  source  = "terraform-aws-modules/s3-bucket/aws"
+  source = "terraform-aws-modules/s3-bucket/aws"
   version = "~> 5.0"
 
   bucket_prefix = "${local.name}-data-"

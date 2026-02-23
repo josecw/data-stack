@@ -4,8 +4,10 @@ metadata:
   name: ${team_name}-role
   namespace: ${namespace}
   labels:
+    team: ${team_name}
     app.kubernetes.io/name: flink-kubernetes-operator
     app.kubernetes.io/version: "1.4.0"
+    app.kubernetes.io/managed-by: terraform
 rules:
 - apiGroups: [""]
   resources: ["pods", "pods/log", "configmaps", "endpoints", "persistentvolumes", "persistentvolumeclaims"]

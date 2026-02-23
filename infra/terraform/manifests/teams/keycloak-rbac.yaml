@@ -1,0 +1,21 @@
+# Keycloak RBAC Integration for Teams
+# This file contains Keycloak-specific RBAC resources for team namespaces
+
+# Keycloak Group Mapping
+# Keycloak groups will be created based on team namespaces
+# Format: <namespace-name>-group
+# Example: spark-team-a-group
+
+# Keycloak Client Configuration
+# Keycloak client will be created for the cluster
+# Client ID: ${var.name}-keycloak-client
+# Client Secret: will be auto-generated
+
+# Kubernetes ServiceAccount to Keycloak Group Mapping
+# ServiceAccount will be annotated with Keycloak group
+# Format: system:serviceaccount:<namespace>:<service-account>
+# Example: system:serviceaccount:spark-team-a:spark-team-a
+
+# Keycloak OIDC Provider Configuration
+# EKS OIDC Provider URL: module.eks.cluster_oidc_issuer_url
+# This will be configured in Keycloak as an identity provider
