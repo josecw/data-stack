@@ -18,6 +18,8 @@ Welcome to **Data on EKS**, your launchpad for deploying **data platforms at sca
 
 Explore practical examples and patterns for running Data workloads on EKS using advanced frameworks such as [Apache Spark](https://spark.apache.org/) for distributed data processing, [Apache Flink](https://flink.apache.org/) for real-time stream processing, and [Apache Kafka](https://kafka.apache.org/) for high-throughput distributed messaging. Automate and orchestrate complex workflows with [Apache Airflow](https://airflow.apache.org/) and leverage the robust capabilities of [Amazon EMR on EKS](https://docs.aws.amazon.com/emr/latest/EMR-on-EKS-DevelopmentGuide/emr-eks.html) to build resilient clusters, seamlessly integrating Kubernetes with big data solutions for enhanced scalability and performance.
 
+> **Latest Release (v0.0.2):** This fork includes significant enhancements including Spotify Backstage, Keycloak integration, tiered S3 buckets, Coder development environment, Polaris + Ranger for governance, Open Metadata, and the LGTM observability stack. See [Release 0.0.2](https://github.com/josecw/data-stack/releases/tag/0.0.2) for details.
+
 > **Note:** DoEKS is in active development. For upcoming features and enhancements, check out the [issues](https://github.com/awslabs/data-on-eks/issues) section.
 
 
@@ -54,6 +56,36 @@ Here are some of the ready-to-deploy blueprints included in this repo:
 | 🚀 **[Apache Kafka with Strimzi](https://awslabs.github.io/data-on-eks/docs/blueprints/streaming-platforms/kafka)** | High-throughput Kafka messaging on EKS |
 | 🚀 **[Airflow on EKS](https://awslabs.github.io/data-on-eks/docs/blueprints/job-schedulers/self-managed-airflow)** | DAG-based data pipeline orchestration using Apache Airflow |
 | 🚀 **[Argo Workflows](https://awslabs.github.io/data-on-eks/docs/blueprints/job-schedulers/argo-workflows-eks)** | Kubernetes-native workflow engine for CI/CD or data pipelines |
+
+### 🎛️ Platform & DevOps
+
+Platform and developer productivity blueprints for managing your data infrastructure:
+
+| Blueprint | Description |
+|-------------|-------------|
+| 🔐 **[Keycloak OIDC Provider](infra/terraform/keycloak-v2.tf)** | Identity and access management with OIDC integration for EKS |
+| 🔑 **[Tiered S3 Buckets](infra/terraform/storage-v2.tf)** | Bronze/Silver/Gold buckets following Medallion architecture |
+| 👥 **[Teams with Keycloak Integration](infra/terraform/teams-v3.tf)** | Team-based access control with Keycloak RBAC |
+| 💻 **[Coder Development Environment](infra/terraform/coder-v4.tf)** | Remote development environments with VSCode, Jupyter, RStudio templates |
+| 🎭 **[Spotify Backstage](data-stacks/backstage-on-eks/README.md)** | Developer portal platform with service catalog, TechDocs, and plugins |
+| 🔍 **[Open Metadata](infra/terraform/openmetadata-v6.tf)** | Enterprise metadata platform for cataloging and lineage |
+
+### 🛡️ Security & Governance
+
+Security, authorization, and compliance blueprints:
+
+| Blueprint | Description |
+|-------------|-------------|
+| 🏛️ **[Polaris + Ranger](infra/terraform/polaris-ranger.tf)** | Apache Polaris for Iceberg catalog and Ranger for fine-grained authorization |
+| 📋 **[Open Metadata](infra/terraform/openmetadata-v6.tf)** | Enterprise metadata platform with data catalog and governance |
+
+### 📊 Observability & Monitoring
+
+Observability stack for logs, metrics, and traces:
+
+| Blueprint | Description |
+|-------------|-------------|
+| 📈 **[LGTM Stack](infra/terraform/lgtm-v8.tf)** | Loki (logs), Grafana (metrics), Tempo (traces) for full observability |
 
 
 ## 📚 Documentation
@@ -124,5 +156,57 @@ Built with ❤️ at AWS.
 6. Then apply for the rest of resources
     ```bash
     terraform apply -auto-approve -var-file=data-stack.tfvars
-    ```  
+    ```
+
+## 🎯 Version 0.0.2 Highlights
+
+This release introduces major platform enhancements and integrations:
+
+### 🆕 New Features
+
+- **Spotify Backstage** - Developer portal with service catalog, TechDocs, and plugin ecosystem
+- **Keycloak Integration** - OIDC provider for EKS authentication and team-based RBAC
+- **Tiered S3 Buckets** - Bronze/Silver/Gold buckets following Medallion architecture
+- **Coder Environment** - Remote development with VSCode, Jupyter, RStudio templates
+- **Polaris + Ranger** - Iceberg catalog and fine-grained authorization
+- **Open Metadata** - Enterprise metadata platform for cataloging and lineage
+- **LGTM Stack** - Loki, Grafana, Tempo for full observability
+
+### 📦 Configuration
+
+Enable new features in `data-stack.tfvars`:
+
+```hcl
+# Identity & Access
+enable_keycloak          = true
+
+# Storage
+enable_tiered_storage   = true
+
+# Platform
+enable_teams_integration = true
+enable_coder            = true
+enable_backstage         = true
+
+# Governance
+enable_polaris          = true
+enable_ranger            = true
+enable_open_metadata     = true
+
+# Observability
+enable_lgtm             = true
+```
+
+### 📖 Documentation
+
+See the following files for detailed deployment guides:
+- `PHASE8-LGTM.md` - LGTM Stack deployment
+- `PHASE6-OPENMETADATA.md` - Open Metadata setup
+- `PHASE5-POLARIS-RANGER.md` - Polaris + Ranger configuration
+- `data-stacks/backstage-on-eks/README.md` - Backstage integration
+
+## 📈 Release Notes
+
+- **[v0.0.2](https://github.com/josecw/data-stack/releases/tag/0.0.2)** (Latest) - Phases 1-6 + Backstage + LGTM
+- **v0.0.1** - Initial fork from AWS Labs
 
